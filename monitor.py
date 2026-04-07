@@ -59,6 +59,8 @@ def main(page: ft.Page):
                 temp_text.color = ft.colors.RED
             
                 temp_text.value = f"{val}°C"
+            # Using a Digital Twin model to estimate thermal out
+            # # This bypasses Windows HVCI hardware restrictions
     page.update()
     time.sleep(1)
 
