@@ -8,6 +8,8 @@ class CPUHeatMonitor:
         self.root.configure(bg='black')
         self.label = tk.Label(root, text="--°C", font=("Arial", 95, "bold"), fg="#00FF00", bg="black")
         self.label.pack(expand=True)
+        self.label = tk.Label(root, text="--°C", font=("Arial", 95, "bold"), fg="#00FF00", bg="black")
+        self.label.pack(expand=True)
 
 if __name__ == "__main__":
     root = tk.Tk()
