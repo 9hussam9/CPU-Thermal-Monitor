@@ -9,7 +9,7 @@ import time
 async def main(page: ft.Page):
     page.title = "Jarvis System Hub"
     page.window.width = 420
-    page.window.height = 760 
+    page.window.height = 800 # Increased for extra settings
     page.window.resizable = False 
     page.bgcolor = "#E0E0E0" 
     page.theme_mode = ft.ThemeMode.LIGHT
@@ -17,18 +17,22 @@ async def main(page: ft.Page):
 
     state = {"running": True, "city": "Stockholm", "temp_val": "40.0"}
 
-    # --- VOICE FUNCTIONS ---
-    def jarvis_report(report_text):
+    # --- ENHANCED VOICE LOGIC ---
+    def jarvis_report(report_text, voice_gender):
         clean_text = report_text.replace("'", "")
+        # Index 0 is usually Male (David), Index 1 is usually Female (Zira)
+        voice_index = 0 if voice_gender == "Male" else 1
+        
         cmd = f'PowerShell -Command "Add-Type –AssemblyName System.Speech; ' \
               f'$speak = New-Object System.Speech.Synthesis.SpeechSynthesizer; ' \
+              f'$voices = $speak.GetInstalledVoices(); ' \
+              f'$speak.SelectVoice($voices[{voice_index}].VoiceInfo.Name); ' \
               f'$speak.Speak(\'{clean_text}\')"'
         subprocess.Popen(cmd, shell=True)
 
     def stop_voice(e):
         subprocess.run("taskkill /IM powershell.exe /F", shell=True)
         status_msg.value = "VOICE TERMINATED"
-        status_msg.color = ft.Colors.RED_700
         page.update()
 
     # --- UI ELEMENTS ---
@@ -37,35 +41,37 @@ async def main(page: ft.Page):
     weather_display = ft.Text(value="STOCKHOLM: --", size=16, weight=ft.FontWeight.W_500)
     status_msg = ft.Text(value="SYSTEM ONLINE", color=ft.Colors.GREY_600, size=11)
 
-    # --- IDENTITY DROPDOWN ---
-    gender_dd = ft.Dropdown(
-        label="Select Identity",
-        width=200,
-        value="Male (Sir)", # Set a default value so it's never empty
-        options=[
-            ft.dropdown.Option("Male (Sir)"),
-            ft.dropdown.Option("Female (Ma'am)"),
-        ],
+    # 1. Identity Dropdown (Who Jarvis talks to)
+    identity_dd = ft.Dropdown(
+        label="Your Identity",
+        width=180,
+        value="Male (Sir)",
+        options=[ft.dropdown.Option("Male (Sir)"), ft.dropdown.Option("Female (Ma'am)")],
     )
 
-    # --- REPORT FUNCTION (With Live Identity Check) ---
+    # 2. Voice Dropdown (Who is talking)
+    voice_dd = ft.Dropdown(
+        label="Jarvis Voice",
+        width=180,
+        value="Male Engine",
+        options=[ft.dropdown.Option("Male Engine"), ft.dropdown.Option("Female Engine")],
+    )
+
     async def surprise_me(e):
-        # LIVE CHECK: Look at the dropdown value RIGHT NOW
-        selected_title = "Sir" # Default fallback
-        if gender_dd.value == "Female (Ma'am)":
-            selected_title = "Ma'am"
-        elif gender_dd.value == "Male (Sir)":
-            selected_title = "Sir"
+        # Check Identity
+        selected_title = "Ma'am" if "Female" in identity_dd.value else "Sir"
+        # Check Voice Engine
+        selected_voice = "Female" if "Female" in voice_dd.value else "Male"
 
         now = datetime.datetime.now()
         current_time_voice = now.strftime("%I:%M %p")
         
         report = f"Good morning {selected_title}. The time is {current_time_voice}. The CPU temperature is {state['temp_val']} degrees Celsius."
         
-        status_msg.value = f"JARVIS: REPORTING TO {selected_title.upper()}..."
+        status_msg.value = f"JARVIS ({selected_voice.upper()}): REPORTING..."
         page.update()
         
-        jarvis_report(report)
+        jarvis_report(report, selected_voice)
         
         await asyncio.sleep(4)
         status_msg.value = "SYSTEM MONITORING ACTIVE"
@@ -73,7 +79,10 @@ async def main(page: ft.Page):
 
     # --- LAYOUT ---
     page.add(
-        ft.Row([ft.Text("USER CONFIG:", size=11, weight=ft.FontWeight.BOLD), gender_dd], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+        ft.Column([
+            ft.Row([ft.Text("IDENTITY:", size=11, weight=ft.FontWeight.BOLD), identity_dd], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+            ft.Row([ft.Text("VOICE:", size=11, weight=ft.FontWeight.BOLD), voice_dd], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+        ], spacing=10),
         ft.Divider(height=20, color=ft.Colors.TRANSPARENT),
         ft.Card(content=ft.Container(content=ft.ListTile(leading=ft.Icon(ft.Icons.ACCESS_TIME_FILLED), title=ft.Text("TIME"), subtitle=clock_val), padding=10, bgcolor=ft.Colors.WHITE, border_radius=15)),
         ft.Card(content=ft.Container(content=ft.ListTile(leading=ft.Icon(ft.Icons.DASHBOARD_ROUNDED), title=ft.Text("CPU"), subtitle=cpu_val), padding=10, bgcolor=ft.Colors.WHITE, border_radius=15)),
@@ -86,8 +95,6 @@ async def main(page: ft.Page):
         status_msg
     )
 
-    # --- BACKGROUND LOOP ---
-    last_weather_update = 0
     while state["running"]:
         clock_val.value = datetime.datetime.now().strftime("%I:%M:%S %p")
         temp = round(40.0 + random.uniform(-0.5, 2.5), 1)
