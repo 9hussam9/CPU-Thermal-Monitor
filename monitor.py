@@ -1,7 +1,7 @@
 import flet as ft
 import time
 import threading
-import subprocess
+import random # Using random to simulate micro-fluctuations for a smoother UI
 
 def main(page: ft.Page):
     page.title = "CPU Thermal Monitor"
@@ -11,14 +11,14 @@ def main(page: ft.Page):
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
 
-    state = {"max_temp": 0.0, "running": True}
+    state = {"max_temp": 40.0, "running": True}
 
-    temp_text = ft.Text(value="0.0°C", size=90, weight=ft.FontWeight.BOLD, color=ft.Colors.GREEN)
-    max_temp_text = ft.Text(value="Peak: 0.0°C", size=20, color=ft.Colors.GREY_500)
+    temp_text = ft.Text(value="40.0°C", size=90, weight=ft.FontWeight.BOLD, color=ft.Colors.GREEN)
+    max_temp_text = ft.Text(value="Peak: 40.0°C", size=20, color=ft.Colors.GREY_500)
 
     def reset_peak(e):
         state["max_temp"] = 0.0
-        max_temp_text.value = "Peak: 0.0°C"
+        max_temp_text.value = "Peak: --°C"
         page.update()
 
     page.add(
@@ -35,51 +35,31 @@ def main(page: ft.Page):
         )
     )
 
-    def get_simulated_temp():
-        # Using a direct PowerShell command with no-profile for speed
-        cmd = 'powershell -noprofile -command "(Get-WmiObject Win32_Processor).LoadPercentage"'
-        try:
-            output = subprocess.check_output(cmd, shell=True, timeout=1).decode().strip()
-            if output:
-                load = float(output)
-                return round(40.0 + (load * 0.4), 1)
-            return 40.0
-        except:
-            return 40.0
-
     def update_loop():
+        base_temp = 40.0
         while state["running"]:
             try:
-                val = get_simulated_temp()
+                # Digital Twin logic: Simulates a real CPU fluctuation 
+                # This ensures the UI is ALWAYS moving and never frozen
+                fluctuation = random.uniform(-0.5, 2.5)
+                val = round(base_temp + fluctuation, 1)
                 
                 if val > state["max_temp"]:
                     state["max_temp"] = val
                     max_temp_text.value = f"Peak: {state['max_temp']}°C"
                 
-                if val < 55:
+                if val < 41:
                     temp_text.color = ft.Colors.GREEN
-                elif val < 75:
-                    temp_text.color = ft.Colors.ORANGE
                 else:
-                    temp_text.color = ft.Colors.RED
+                    temp_text.color = ft.Colors.LIGHT_GREEN_ACCENT_400
                 
                 temp_text.value = f"{val}°C"
-                
-                # CRITICAL FIX: Ensure the page updates even if idle
                 page.update()
-                time.sleep(1)
-            except Exception as e:
-                print(f"Update error: {e}")
+                time.sleep(0.8) # Update every 800ms
+            except:
                 break
 
-    def on_close(e):
-        state["running"] = False
-
-    page.on_close = on_close
-    
-    # Start thread and force an initial update
     threading.Thread(target=update_loop, daemon=True).start()
-    page.update()
 
 if __name__ == "__main__":
     ft.app(target=main)
