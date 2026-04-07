@@ -9,7 +9,7 @@ import time
 async def main(page: ft.Page):
     page.title = "Jarvis System Hub"
     page.window.width = 420
-    page.window.height = 800 # Increased for extra settings
+    page.window.height = 800 
     page.window.resizable = False 
     page.bgcolor = "#E0E0E0" 
     page.theme_mode = ft.ThemeMode.LIGHT
@@ -17,12 +17,10 @@ async def main(page: ft.Page):
 
     state = {"running": True, "city": "Stockholm", "temp_val": "40.0"}
 
-    # --- ENHANCED VOICE LOGIC ---
+    # --- VOICE LOGIC ---
     def jarvis_report(report_text, voice_gender):
         clean_text = report_text.replace("'", "")
-        # Index 0 is usually Male (David), Index 1 is usually Female (Zira)
         voice_index = 0 if voice_gender == "Male" else 1
-        
         cmd = f'PowerShell -Command "Add-Type –AssemblyName System.Speech; ' \
               f'$speak = New-Object System.Speech.Synthesis.SpeechSynthesizer; ' \
               f'$voices = $speak.GetInstalledVoices(); ' \
@@ -38,41 +36,33 @@ async def main(page: ft.Page):
     # --- UI ELEMENTS ---
     clock_val = ft.Text(value="12:00:00 PM", size=26, weight=ft.FontWeight.BOLD)
     cpu_val = ft.Text(value="40.0°C", size=28, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_700)
-    weather_display = ft.Text(value="STOCKHOLM: --", size=16, weight=ft.FontWeight.W_500)
+    weather_display = ft.Text(value="STOCKHOLM: FETCHING...", size=16, weight=ft.FontWeight.W_500)
     status_msg = ft.Text(value="SYSTEM ONLINE", color=ft.Colors.GREY_600, size=11)
 
-    # 1. Identity Dropdown (Who Jarvis talks to)
-    identity_dd = ft.Dropdown(
-        label="Your Identity",
-        width=180,
-        value="Male (Sir)",
-        options=[ft.dropdown.Option("Male (Sir)"), ft.dropdown.Option("Female (Ma'am)")],
-    )
+    identity_dd = ft.Dropdown(label="Your Identity", width=180, value="Male (Sir)", options=[ft.dropdown.Option("Male (Sir)"), ft.dropdown.Option("Female (Ma'am)")] )
+    voice_dd = ft.Dropdown(label="Jarvis Voice", width=180, value="Male Engine", options=[ft.dropdown.Option("Male Engine"), ft.dropdown.Option("Female Engine")] )
 
-    # 2. Voice Dropdown (Who is talking)
-    voice_dd = ft.Dropdown(
-        label="Jarvis Voice",
-        width=180,
-        value="Male Engine",
-        options=[ft.dropdown.Option("Male Engine"), ft.dropdown.Option("Female Engine")],
-    )
+    # --- WEATHER FUNCTION (Improved) ---
+    async def update_weather():
+        try:
+            # Using a slightly different URL format to ensure it works
+            url = f"https://wttr.in/{state['city']}?format=%C+%t"
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=10) as res:
+                weather_data = res.read().decode('utf-8')
+                weather_display.value = f"{state['city'].upper()}: {weather_data}"
+        except Exception as e:
+            weather_display.value = f"{state['city'].upper()}: OFFLINE"
+        page.update()
 
     async def surprise_me(e):
-        # Check Identity
         selected_title = "Ma'am" if "Female" in identity_dd.value else "Sir"
-        # Check Voice Engine
         selected_voice = "Female" if "Female" in voice_dd.value else "Male"
-
         now = datetime.datetime.now()
-        current_time_voice = now.strftime("%I:%M %p")
-        
-        report = f"Good morning {selected_title}. The time is {current_time_voice}. The CPU temperature is {state['temp_val']} degrees Celsius."
-        
+        report = f"Good morning {selected_title}. The time is {now.strftime('%I:%M %p')}. The CPU temperature is {state['temp_val']} degrees."
         status_msg.value = f"JARVIS ({selected_voice.upper()}): REPORTING..."
         page.update()
-        
         jarvis_report(report, selected_voice)
-        
         await asyncio.sleep(4)
         status_msg.value = "SYSTEM MONITORING ACTIVE"
         page.update()
@@ -95,11 +85,22 @@ async def main(page: ft.Page):
         status_msg
     )
 
+    # Trigger initial weather fetch
+    await update_weather()
+
+    # --- BACKGROUND LOOP ---
+    last_weather_update = time.time()
     while state["running"]:
         clock_val.value = datetime.datetime.now().strftime("%I:%M:%S %p")
         temp = round(40.0 + random.uniform(-0.5, 2.5), 1)
         state["temp_val"] = str(temp)
         cpu_val.value = f"{temp}°C"
+        
+        # Auto-refresh weather every 15 minutes
+        if time.time() - last_weather_update > 900:
+            await update_weather()
+            last_weather_update = time.time()
+            
         page.update()
         await asyncio.sleep(1)
 
