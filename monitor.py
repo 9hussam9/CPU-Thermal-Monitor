@@ -18,20 +18,15 @@ def main(page: ft.Page):
         color=ft.colors.GREEN,
     )
 
-    status_text = ft.Text(
-        value="System: Monitoring Active",
-        color=ft.colors.GREY_800,
-        size=12,
-    )
-
     page.add(
         ft.Column(
             [
                 ft.Text("CPU TEMPERATURE (ESTIMATED)", color=ft.colors.GREY_500, size=14),
                 temp_text,
-                status_text,
+                ft.Text("System: Monitoring Active", color=ft.colors.GREY_800, size=12),
             ],
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=20 # Added spacing for better UI readability
         )
     )
 
@@ -49,6 +44,8 @@ def main(page: ft.Page):
 
     def update_loop():
         while True:
+            # Using a Digital Twin model to estimate thermal output
+            # This bypasses Windows HVCI hardware restrictions
             val = get_simulated_temp()
             
             if val < 55:
@@ -58,11 +55,9 @@ def main(page: ft.Page):
             else:
                 temp_text.color = ft.colors.RED
             
-                temp_text.value = f"{val}°C"
-            # Using a Digital Twin model to estimate thermal out
-            # # This bypasses Windows HVCI hardware restrictions
-    page.update()
-    time.sleep(1)
+            temp_text.value = f"{val}°C"
+            page.update()
+            time.sleep(1)
 
     threading.Thread(target=update_loop, daemon=True).start()
 
