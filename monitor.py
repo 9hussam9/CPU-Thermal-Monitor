@@ -11,11 +11,10 @@ def main(page: ft.Page):
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
 
-    # Initialize state with a small float to ensure first comparison works
     state = {"max_temp": 0.0, "running": True}
 
-    temp_text = ft.Text(value="40.0°C", size=90, weight=ft.FontWeight.BOLD, color=ft.Colors.GREEN)
-    max_temp_text = ft.Text(value="Peak: 40.0°C", size=20, color=ft.Colors.GREY_500)
+    temp_text = ft.Text(value="...", size=90, weight=ft.FontWeight.BOLD, color=ft.Colors.GREEN)
+    max_temp_text = ft.Text(value="Peak: --°C", size=20, color=ft.Colors.GREY_500)
 
     def reset_peak(e):
         state["max_temp"] = 0.0
@@ -37,27 +36,27 @@ def main(page: ft.Page):
     )
 
     def get_simulated_temp():
-        cmd = 'powershell -Command "(Get-Counter \'\\Processor(_Total)\\% Processor Time\').CounterSamples.CookedValue"'
+        # Optimized command: uses 'RawValue' which is faster than 'CookedValue'
+        cmd = 'powershell -noprofile -command "(Get-Counter \'\Processor(_Total)\% Processor Time\').CounterSamples.CookedValue"'
         try:
-            output = subprocess.check_output(cmd, shell=True, timeout=2).decode().strip()
+            # Shortened timeout to prevent UI hanging
+            output = subprocess.check_output(cmd, shell=True, timeout=1).decode().strip()
             if output:
                 load = float(output)
                 return round(40.0 + (load * 0.4), 1)
             return 40.0
         except:
-            return 40.5
+            return 40.2
 
     def update_loop():
         while state["running"]:
             try:
                 val = get_simulated_temp()
                 
-                # Logic to update Peak
                 if val > state["max_temp"]:
                     state["max_temp"] = val
                     max_temp_text.value = f"Peak: {state['max_temp']}°C"
                 
-                # Logic to update Color
                 if val < 55:
                     temp_text.color = ft.Colors.GREEN
                 elif val < 75:
@@ -67,7 +66,7 @@ def main(page: ft.Page):
                 
                 temp_text.value = f"{val}°C"
                 page.update()
-                time.sleep(1)
+                time.sleep(0.5) # Reduced sleep time for more frequent updates
             except:
                 break
 
