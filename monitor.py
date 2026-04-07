@@ -3,9 +3,10 @@ import asyncio
 import random
 import subprocess
 import datetime
-import time
+import os
 
 async def main(page: ft.Page):
+    # Window Config
     page.title = "Jarvis System Hub"
     page.window.width = 420
     page.window.height = 680
@@ -16,6 +17,14 @@ async def main(page: ft.Page):
 
     state = {"running": True}
 
+    # --- NATIVE WINDOWS VOICE LOGIC ---
+    def jarvis_talk(text):
+        # Uses Windows PowerShell to speak - No libraries needed!
+        cmd = f'PowerShell -Command "Add-Type –AssemblyName System.Speech; ' \
+              f'$speak = New-Object System.Speech.Synthesis.SpeechSynthesizer; ' \
+              f'$speak.Speak(\'{text}\')"'
+        subprocess.Popen(cmd, shell=True)
+
     # --- UI ELEMENTS ---
     clock_val = ft.Text(value="00:00:00", size=28, weight=ft.FontWeight.BOLD)
     cpu_val = ft.Text(value="40.0°C", size=28, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_700)
@@ -23,16 +32,14 @@ async def main(page: ft.Page):
 
     # --- FUNCTIONS ---
     async def surprise_me(e):
-        # Professional UI animation instead of failing audio
-        status_msg.value = "JARVIS: Good morning, sir. All systems nominal."
+        status_msg.value = "GREETING PROTOCOL ACTIVE..."
         status_msg.color = ft.Colors.CYAN_700
         page.update()
         
-        # Flash the CPU color to show "interaction"
-        cpu_val.color = ft.Colors.CYAN_400
-        page.update()
+        # This will actually use your computer's speakers!
+        jarvis_talk("Good morning, sir. All systems are functioning within normal parameters.")
+        
         await asyncio.sleep(2)
-        cpu_val.color = ft.Colors.BLUE_700
         status_msg.value = "SYSTEM MONITORING ACTIVE"
         page.update()
 
