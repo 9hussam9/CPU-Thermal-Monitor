@@ -36,7 +36,7 @@ def main(page: ft.Page):
     )
 
     def get_simulated_temp():
-        # Using a much lighter WMI call instead of Get-Counter for speed
+        # Using a direct PowerShell command with no-profile for speed
         cmd = 'powershell -noprofile -command "(Get-WmiObject Win32_Processor).LoadPercentage"'
         try:
             output = subprocess.check_output(cmd, shell=True, timeout=1).decode().strip()
@@ -45,12 +45,13 @@ def main(page: ft.Page):
                 return round(40.0 + (load * 0.4), 1)
             return 40.0
         except:
-            return 40.2
+            return 40.0
 
     def update_loop():
         while state["running"]:
             try:
                 val = get_simulated_temp()
+                
                 if val > state["max_temp"]:
                     state["max_temp"] = val
                     max_temp_text.value = f"Peak: {state['max_temp']}°C"
@@ -63,16 +64,22 @@ def main(page: ft.Page):
                     temp_text.color = ft.Colors.RED
                 
                 temp_text.value = f"{val}°C"
+                
+                # CRITICAL FIX: Ensure the page updates even if idle
                 page.update()
-                time.sleep(0.5) 
-            except:
+                time.sleep(1)
+            except Exception as e:
+                print(f"Update error: {e}")
                 break
 
     def on_close(e):
         state["running"] = False
 
     page.on_close = on_close
+    
+    # Start thread and force an initial update
     threading.Thread(target=update_loop, daemon=True).start()
+    page.update()
 
 if __name__ == "__main__":
     ft.app(target=main)
