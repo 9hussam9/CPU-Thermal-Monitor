@@ -6,7 +6,7 @@ import subprocess
 def main(page: ft.Page):
     page.title = "CPU Thermal Monitor"
     page.window_width = 400
-    page.window_height = 300
+    page.window_height = 350 # Added height for the button
     page.bgcolor = ft.Colors.BLACK
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
@@ -16,21 +16,27 @@ def main(page: ft.Page):
     temp_text = ft.Text(value="Loading...", size=60, weight=ft.FontWeight.BOLD, color=ft.Colors.GREEN)
     max_temp_text = ft.Text(value="Peak: --°C", size=20, color=ft.Colors.GREY_500)
 
+    # Function to reset the peak temperature
+    def reset_peak(e):
+        state["max_temp"] = 0.0
+        max_temp_text.value = "Peak: --°C"
+        page.update()
+
     page.add(
         ft.Column(
             [
                 ft.Text("CPU TEMPERATURE (ESTIMATED)", color=ft.Colors.GREY_500, size=14),
                 temp_text,
                 max_temp_text,
+                ft.ElevatedButton("Reset Peak", on_click=reset_peak, color=ft.Colors.WHITE, bgcolor=ft.Colors.BLUE_GREY_900),
                 ft.Text("System: Monitoring Active", color=ft.Colors.GREY_800, size=12),
             ],
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=10
+            spacing=15
         )
     )
 
     def get_simulated_temp():
-        # Optimization: Simplified command for faster response
         cmd = 'powershell -Command "(Get-Counter \'\\Processor(_Total)\\% Processor Time\').CounterSamples.CookedValue"'
         try:
             output = subprocess.check_output(cmd, shell=True, timeout=2).decode().strip()
@@ -39,17 +45,13 @@ def main(page: ft.Page):
                 return round(40.0 + (load * 0.4), 1)
             return 40.0
         except:
-            return 42.5 # Indicates the loop is active even if PS is slow
+            return 42.0
 
     def update_loop():
-        # Immediate first update to remove "--C"
-        val = get_simulated_temp()
-        temp_text.size = 90
-        temp_text.value = f"{val}°C"
-        page.update()
-
         while True:
             val = get_simulated_temp()
+            temp_text.size = 90
+            
             if val > state["max_temp"]:
                 state["max_temp"] = val
                 max_temp_text.value = f"Peak: {state['max_temp']}°C"
@@ -65,9 +67,7 @@ def main(page: ft.Page):
             page.update()
             time.sleep(1)
 
-    # Start and force immediate UI refresh
     threading.Thread(target=update_loop, daemon=True).start()
-    page.update()
 
 if __name__ == "__main__":
     ft.app(target=main)
