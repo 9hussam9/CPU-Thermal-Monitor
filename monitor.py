@@ -6,17 +6,16 @@ import subprocess
 def main(page: ft.Page):
     page.title = "CPU Thermal Monitor"
     page.window_width = 400
-    page.window_height = 350 # Added height for the button
+    page.window_height = 350
     page.bgcolor = ft.Colors.BLACK
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
 
-    state = {"max_temp": 0.0}
+    state = {"max_temp": 0.0, "running": True}
 
     temp_text = ft.Text(value="Loading...", size=60, weight=ft.FontWeight.BOLD, color=ft.Colors.GREEN)
     max_temp_text = ft.Text(value="Peak: --°C", size=20, color=ft.Colors.GREY_500)
 
-    # Function to reset the peak temperature
     def reset_peak(e):
         state["max_temp"] = 0.0
         max_temp_text.value = "Peak: --°C"
@@ -45,28 +44,35 @@ def main(page: ft.Page):
                 return round(40.0 + (load * 0.4), 1)
             return 40.0
         except:
-            return 42.0
+            return 40.0
 
     def update_loop():
-        while True:
-            val = get_simulated_temp()
-            temp_text.size = 90
-            
-            if val > state["max_temp"]:
-                state["max_temp"] = val
-                max_temp_text.value = f"Peak: {state['max_temp']}°C"
-            
-            if val < 55:
-                temp_text.color = ft.Colors.GREEN
-            elif val < 75:
-                temp_text.color = ft.Colors.ORANGE
-            else:
-                temp_text.color = ft.Colors.RED
-            
-            temp_text.value = f"{val}°C"
-            page.update()
-            time.sleep(1)
+        while state["running"]:
+            try:
+                val = get_simulated_temp()
+                temp_text.size = 90
+                
+                if val > state["max_temp"]:
+                    state["max_temp"] = val
+                    max_temp_text.value = f"Peak: {state['max_temp']}°C"
+                
+                if val < 55:
+                    temp_text.color = ft.Colors.GREEN
+                elif val < 75:
+                    temp_text.color = ft.Colors.ORANGE
+                else:
+                    temp_text.color = ft.Colors.RED
+                
+                temp_text.value = f"{val}°C"
+                page.update()
+                time.sleep(1)
+            except:
+                break # Gracefully stop if UI is closed
 
+    def on_close(e):
+        state["running"] = False
+
+    page.on_close = on_close
     threading.Thread(target=update_loop, daemon=True).start()
 
 if __name__ == "__main__":
