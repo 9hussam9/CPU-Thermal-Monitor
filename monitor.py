@@ -1,17 +1,32 @@
-import tkinter as tk
+import flet as ft
+import time
+import threading
 
-class CPUHeatMonitor:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("CPU Thermal Monitor")
-        self.root.geometry("400x250")
-        self.root.configure(bg='black')
-        self.label = tk.Label(root, text="--°C", font=("Arial", 95, "bold"), fg="#00FF00", bg="black")
-        self.label.pack(expand=True)
-        self.label = tk.Label(root, text="--°C", font=("Arial", 95, "bold"), fg="#00FF00", bg="black")
-        self.label.pack(expand=True)
+def main(page: ft.Page):
+    page.title = "CPU Thermal Monitor"
+    page.window_width = 400
+    page.window_height = 250
+    page.bgcolor = ft.colors.BLACK
+    page.vertical_alignment = ft.MainAxisAlignment.CENTER
+
+    # The big temperature display
+    temp_text = ft.Text(
+        value="--°C",
+        size=90,
+        weight=ft.FontWeight.BOLD,
+        color=ft.colors.GREEN,
+    )
+
+    page.add(
+        ft.Column(
+            [
+                ft.Text("CPU TEMPERATURE (ESTIMATED)", color=ft.colors.GREY_500),
+                temp_text,
+                ft.Text("System: Active", color=ft.colors.GREY_800),
+            ],
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        )
+    )
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = CPUHeatMonitor(root)
-    root.mainloop()
+    ft.app(target=main)
