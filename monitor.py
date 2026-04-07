@@ -14,7 +14,7 @@ def main(page: ft.Page):
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
 
-    state = {"running": True, "city": "Stockholm"} # You can change the city here
+    state = {"running": True, "city": "Stockholm"} 
 
     # UI Elements
     clock_text = ft.Text(value="00:00:00", size=30, weight=ft.FontWeight.W_300, color=ft.Colors.CYAN_ACCENT)
@@ -24,9 +24,8 @@ def main(page: ft.Page):
 
     def get_weather():
         try:
-            # Simple way to get weather for a city via wttr.in
             url = f"https://wttr.in/{state['city']}?format=%C+%t"
-            with urllib.request.urlopen(url) as response:
+            with urllib.request.urlopen(url, timeout=5) as response:
                 return response.read().decode('utf-8')
         except:
             return "Weather Unavailable"
@@ -50,7 +49,7 @@ def main(page: ft.Page):
                     ft.Text("CPU THERMAL ENGINE", color=ft.Colors.GREY_500, size=12),
                     temp_text,
                     ft.Divider(height=10, color=ft.Colors.TRANSPARENT),
-                    ft.Icon(name=ft.Icons.CLOUD_QUEUE, color=ft.Colors.BLUE_400),
+                    ft.Icon(ft.Icons.CLOUD_QUEUE, color=ft.Colors.BLUE_400), # Fixed: Removed 'name='
                     weather_text,
                     ft.Divider(height=20, color=ft.Colors.TRANSPARENT),
                     ft.ElevatedButton("Clear Temp Files", on_click=clear_temp, icon=ft.Icons.DELETE_SWEEP, bgcolor=ft.Colors.RED_900, color=ft.Colors.WHITE),
@@ -68,15 +67,12 @@ def main(page: ft.Page):
         last_weather_update = 0
         while state["running"]:
             try:
-                # Update Clock
                 now = datetime.datetime.now()
                 clock_text.value = now.strftime("%H:%M:%S")
 
-                # Update CPU Simulation
                 val = round(40.0 + random.uniform(-0.5, 2.0), 1)
                 temp_text.value = f"{val}°C"
 
-                # Update Weather every 10 minutes (600 seconds)
                 if time.time() - last_weather_update > 600:
                     weather_text.value = f"{state['city']}: {get_weather()}"
                     last_weather_update = time.time()
