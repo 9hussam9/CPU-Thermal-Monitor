@@ -13,12 +13,12 @@ def main(page: ft.Page):
 
     state = {"max_temp": 0.0, "running": True}
 
-    temp_text = ft.Text(value="...", size=90, weight=ft.FontWeight.BOLD, color=ft.Colors.GREEN)
-    max_temp_text = ft.Text(value="Peak: --°C", size=20, color=ft.Colors.GREY_500)
+    temp_text = ft.Text(value="0.0°C", size=90, weight=ft.FontWeight.BOLD, color=ft.Colors.GREEN)
+    max_temp_text = ft.Text(value="Peak: 0.0°C", size=20, color=ft.Colors.GREY_500)
 
     def reset_peak(e):
         state["max_temp"] = 0.0
-        max_temp_text.value = "Peak: --°C"
+        max_temp_text.value = "Peak: 0.0°C"
         page.update()
 
     page.add(
@@ -36,10 +36,9 @@ def main(page: ft.Page):
     )
 
     def get_simulated_temp():
-        # Optimized command: uses 'RawValue' which is faster than 'CookedValue'
-        cmd = 'powershell -noprofile -command "(Get-Counter \'\Processor(_Total)\% Processor Time\').CounterSamples.CookedValue"'
+        # Using a much lighter WMI call instead of Get-Counter for speed
+        cmd = 'powershell -noprofile -command "(Get-WmiObject Win32_Processor).LoadPercentage"'
         try:
-            # Shortened timeout to prevent UI hanging
             output = subprocess.check_output(cmd, shell=True, timeout=1).decode().strip()
             if output:
                 load = float(output)
@@ -52,7 +51,6 @@ def main(page: ft.Page):
         while state["running"]:
             try:
                 val = get_simulated_temp()
-                
                 if val > state["max_temp"]:
                     state["max_temp"] = val
                     max_temp_text.value = f"Peak: {state['max_temp']}°C"
@@ -66,7 +64,7 @@ def main(page: ft.Page):
                 
                 temp_text.value = f"{val}°C"
                 page.update()
-                time.sleep(0.5) # Reduced sleep time for more frequent updates
+                time.sleep(0.5) 
             except:
                 break
 
