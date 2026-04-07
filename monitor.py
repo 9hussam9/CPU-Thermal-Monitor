@@ -1,12 +1,12 @@
 import flet as ft
 import time
-import threading
+import asyncio
 import random
 import subprocess
 import datetime
 import urllib.request
 
-def main(page: ft.Page):
+async def main(page: ft.Page):
     page.title = "System Dashboard Pro"
     page.window_width = 500
     page.window_height = 600
@@ -60,40 +60,32 @@ def main(page: ft.Page):
         )
     )
 
-    def update_loop():
-        last_weather_update = 0
-        while state["running"]:
-            # 1. Update Clock
-            clock_text.value = datetime.datetime.now().strftime("%H:%M:%S")
+    # The Professional Async Loop
+    last_weather_update = 0
+    while state["running"]:
+        # Update Clock
+        clock_text.value = datetime.datetime.now().strftime("%H:%M:%S")
 
-            # 2. Update CPU Simulation
-            val = round(40.0 + random.uniform(-0.5, 2.5), 1)
-            temp_text.value = f"{val}°C"
-            
-            if val > state["max_temp"]:
-                state["max_temp"] = val
-                peak_text.value = f"Peak: {state['max_temp']}°C"
+        # Update CPU Simulation
+        val = round(40.0 + random.uniform(-0.5, 2.5), 1)
+        temp_text.value = f"{val}°C"
+        
+        if val > state["max_temp"]:
+            state["max_temp"] = val
+            peak_text.value = f"Peak: {state['max_temp']}°C"
 
-            # 3. Update Weather
-            if time.time() - last_weather_update > 600:
-                try:
-                    url = f"https://wttr.in/{state['city']}?format=%C+%t"
-                    with urllib.request.urlopen(url, timeout=5) as res:
-                        weather_text.value = f"{state['city']}: {res.read().decode('utf-8')}"
-                except:
-                    weather_text.value = "Weather Offline"
-                last_weather_update = time.time()
+        # Update Weather (Every 10 mins)
+        if time.time() - last_weather_update > 600:
+            try:
+                url = f"https://wttr.in/{state['city']}?format=%C+%t"
+                with urllib.request.urlopen(url, timeout=5) as res:
+                    weather_text.value = f"{state['city']}: {res.read().decode('utf-8')}"
+            except:
+                weather_text.value = "Weather Offline"
+            last_weather_update = time.time()
 
-            # 4. FORCE UPDATE
-            page.update()
-            time.sleep(1)
-
-    # Start the thread
-    t = threading.Thread(target=update_loop, daemon=True)
-    t.start()
-    
-    # Final nudge to start the visual loop
-    page.update()
+        page.update()
+        await asyncio.sleep(1) # Uses async sleep to keep the UI responsive
 
 if __name__ == "__main__":
     ft.app(target=main)
