@@ -11,10 +11,11 @@ def main(page: ft.Page):
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
 
+    # Initialize state with a small float to ensure first comparison works
     state = {"max_temp": 0.0, "running": True}
 
-    temp_text = ft.Text(value="Loading...", size=60, weight=ft.FontWeight.BOLD, color=ft.Colors.GREEN)
-    max_temp_text = ft.Text(value="Peak: --°C", size=20, color=ft.Colors.GREY_500)
+    temp_text = ft.Text(value="40.0°C", size=90, weight=ft.FontWeight.BOLD, color=ft.Colors.GREEN)
+    max_temp_text = ft.Text(value="Peak: 40.0°C", size=20, color=ft.Colors.GREY_500)
 
     def reset_peak(e):
         state["max_temp"] = 0.0
@@ -44,18 +45,19 @@ def main(page: ft.Page):
                 return round(40.0 + (load * 0.4), 1)
             return 40.0
         except:
-            return 40.0
+            return 40.5
 
     def update_loop():
         while state["running"]:
             try:
                 val = get_simulated_temp()
-                temp_text.size = 90
                 
+                # Logic to update Peak
                 if val > state["max_temp"]:
                     state["max_temp"] = val
                     max_temp_text.value = f"Peak: {state['max_temp']}°C"
                 
+                # Logic to update Color
                 if val < 55:
                     temp_text.color = ft.Colors.GREEN
                 elif val < 75:
@@ -67,7 +69,7 @@ def main(page: ft.Page):
                 page.update()
                 time.sleep(1)
             except:
-                break # Gracefully stop if UI is closed
+                break
 
     def on_close(e):
         state["running"] = False
