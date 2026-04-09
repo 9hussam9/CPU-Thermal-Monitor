@@ -13,6 +13,7 @@ import re
 import shutil
 
 async def main(page: ft.Page):
+    # ### --- WINDOW CONFIGURATION ---
     page.title = "Jarvis System Hub"
     page.window.width = 450 
     page.window.height = 800 
@@ -31,6 +32,7 @@ async def main(page: ft.Page):
         "weather_now": "6°C"
     }
 
+    # ### --- VOICE ENGINE ---
     def jarvis_report_logic(report_text, voice_gender):
         state["voice_active"] = True
         clean_text = report_text.replace("'", "")
@@ -54,19 +56,14 @@ async def main(page: ft.Page):
     def start_voice_thread(text, gender):
         threading.Thread(target=jarvis_report_logic, args=(text, gender), daemon=True).start()
 
+    # ### --- BOOT SEQUENCE LOGIC ---
     def play_boot_sound():
-        # Checking both potential locations to ensure it never breaks
-        paths = [
-            "jarvis.wav", # Relative (GitHub ready)
-            r"C:\progrsming_project\github\jarvis.wav" # Absolute (Your machine)
-        ]
-        
+        paths = ["jarvis.wav", r"C:\progrsming_project\github\jarvis.wav"]
         target_path = None
         for p in paths:
             if os.path.exists(p):
                 target_path = p
                 break
-
         if target_path:
             try:
                 instance = vlc.Instance()
@@ -74,8 +71,10 @@ async def main(page: ft.Page):
                 media = instance.media_new(target_path)
                 player.set_media(media)
                 player.play()
-            except Exception: pass
+            except Exception:
+                pass
 
+    # ### --- WELCOME UI (BOOT SCREEN) ---
     loading_text = ft.Text("INITIALIZING SYSTEM CORES...", size=14, weight=ft.FontWeight.BOLD, color=ft.Colors.CYAN_800)
     progress_bar = ft.ProgressBar(width=300, color=ft.Colors.CYAN_700, bgcolor=ft.Colors.WHITE24, value=0)
     version_text = ft.Text("JARVIS VERSION 2.0", size=12, color=ft.Colors.GREY_500)
@@ -98,6 +97,7 @@ async def main(page: ft.Page):
     page.vertical_alignment = ft.MainAxisAlignment.START 
     page.horizontal_alignment = ft.CrossAxisAlignment.START
 
+    # ### --- MAIN DASHBOARD ELEMENTS ---
     clock_val = ft.Text(value="00:00:00 PM", size=26, weight=ft.FontWeight.BOLD)
     cpu_val = ft.Text(value="40.0°C", size=28, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_700)
     weather_display = ft.Text(value="SYNCING WEATHER...", size=16, weight=ft.FontWeight.W_500)
@@ -113,6 +113,7 @@ async def main(page: ft.Page):
         options=[ft.dropdown.Option("Male Engine"), ft.dropdown.Option("Female Engine")]
     )
 
+    # ### --- WEATHER SYSTEM (AUTO-LOCATION) ---
     async def update_weather():
         try:
             loc_url = "http://ip-api.com/json/"
@@ -131,6 +132,7 @@ async def main(page: ft.Page):
             weather_display.value = "WEATHER: OFFLINE"
         page.update()
 
+    # ### --- SYSTEM ACTIONS ---
     async def surprise_me(e):
         if state["voice_active"]: return
         selected_title = "Ma'am" if "Female" in identity_dd.value else "Sir"
@@ -171,6 +173,7 @@ async def main(page: ft.Page):
             status_msg.value = "ERROR: PATH NOT FOUND"
         page.update()
 
+    # ### --- LAYOUT ASSEMBLY ---
     page.add(
         ft.Text("USER CONFIG:", size=11, weight=ft.FontWeight.BOLD, color=ft.Colors.GREY_500),
         ft.Row([identity_dd, voice_dd], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
@@ -188,6 +191,7 @@ async def main(page: ft.Page):
 
     await update_weather()
 
+    # ### --- MAIN REFRESH LOOP ---
     while state["running"]:
         clock_val.value = datetime.datetime.now().strftime("%I:%M:%S %p")
         temp = round(40.0 + random.uniform(-0.5, 2.5), 1)
