@@ -1,3 +1,6 @@
+# ==========================================
+# --- IMPORTS ---
+# ==========================================
 import flet as ft
 import asyncio
 import random
@@ -15,16 +18,16 @@ import winsound
 import ssl
 
 async def main(page: ft.Page):
-    # ### --- PAGE CONFIGURATION ---
+    # ==========================================
+    # --- CONFIGURATION ---
+    # ==========================================
     page.title = "Jarvis System Hub"
     
-    # Window Size Logic
     page.window.width = 450 
     page.window.height = 800 
     
-    # Locking the dimensions
-    page.window.resizable = False      # Prevents manual stretching
-    page.window.maximizable = False    # Disables the maximize button
+    page.window.resizable = False      
+    page.window.maximizable = False    
     page.window.min_width = 450
     page.window.max_width = 450
     page.window.min_height = 800
@@ -37,7 +40,7 @@ async def main(page: ft.Page):
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
 
     state = {
-        "running": True, 
+        "running": False, 
         "city": "Locating...", 
         "temp_val": "40.0", 
         "voice_active": False,
@@ -45,7 +48,9 @@ async def main(page: ft.Page):
         "user_name": "User" 
     }
 
-    # ### --- VOICE & AUDIO SYSTEM ---
+    # ==========================================
+    # --- AUDIO & VOICE SYSTEM ---
+    # ==========================================
     def jarvis_report_logic(report_text, voice_gender):
         state["voice_active"] = True
         clean_text = report_text.replace("'", "")
@@ -86,7 +91,9 @@ async def main(page: ft.Page):
             except Exception:
                 pass
 
-    # ### --- 15-SECOND ANIMATION START ---
+    # ==========================================
+    # --- STARTUP ---
+    # ==========================================
     loading_text = ft.Text("INITIALIZING SYSTEM CORES...", size=14, weight=ft.FontWeight.BOLD, color=ft.Colors.CYAN_800)
     progress_bar = ft.ProgressBar(width=300, color=ft.Colors.CYAN_700, bgcolor=ft.Colors.WHITE24, value=0)
     version_text = ft.Text("JARVIS VERSION 2.0", size=12, color=ft.Colors.GREY_700)
@@ -105,37 +112,72 @@ async def main(page: ft.Page):
         if i == 40: loading_text.value = "ESTABLISHING SECURE CONNECTION..."
         if i == 75: loading_text.value = "SYNCING BIOMETRIC DATA..."
         page.update()
-        await asyncio.sleep(0.15) # 15 Seconds Total
+        await asyncio.sleep(0.15) 
 
-    # ### --- NAME INPUT SCREEN ---
-    page.clean()
-    async def enter_dashboard(e):
-        if name_input.value:
-            state["user_name"] = name_input.value
-            await build_dashboard()
+    # ==========================================
+    # --- STORAGE SYSTEM ---
+    # ==========================================
+    config_path = os.path.join(os.environ['LOCALAPPDATA'], 'JarvisHub_config.json')
 
-    name_input = ft.TextField(
-        label="Enter your name", 
-        width=300, 
-        border_color=ft.Colors.CYAN_800,
-        text_align=ft.TextAlign.CENTER, 
-        on_submit=enter_dashboard 
-    )
+    def save_user_local(name):
+        try:
+            with open(config_path, 'w') as f:
+                json.dump({"username": name}, f)
+        except Exception: pass
 
-    page.add(
-        ft.Icon(ft.Icons.LOCK_PERSON_ROUNDED, size=40, color=ft.Colors.CYAN_800),
-        ft.Text("IDENTIFICATION REQUIRED", size=18, weight="bold"),
-        name_input,
-        ft.ElevatedButton("ACCESS SYSTEM", on_click=enter_dashboard, bgcolor=ft.Colors.CYAN_800, color="white", width=300)
-    )
-    page.update()
+    def get_user_local():
+        try:
+            if os.path.exists(config_path):
+                with open(config_path, 'r') as f:
+                    return json.load(f).get("username")
+        except Exception: pass
+        return None
 
-    # ### --- DASHBOARD SYSTEM ---
+    def clear_user_local():
+        if os.path.exists(config_path):
+            try: os.remove(config_path)
+            except Exception: pass
+
+    # ==========================================
+    # --- LOGIN UI & LOGIC ---
+    # ==========================================
+    async def show_login():
+        page.clean()
+        page.vertical_alignment = ft.MainAxisAlignment.CENTER 
+        page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
+        
+        async def enter_dashboard(e):
+            if name_input.value:
+                state["user_name"] = name_input.value
+                save_user_local(name_input.value) 
+                await build_dashboard()
+
+        name_input = ft.TextField(
+            label="Enter your name", 
+            width=300, 
+            border_color=ft.Colors.CYAN_800,
+            text_align=ft.TextAlign.CENTER, 
+            on_submit=enter_dashboard 
+        )
+
+        page.add(
+            ft.Icon(ft.Icons.LOCK_PERSON_ROUNDED, size=40, color=ft.Colors.CYAN_800),
+            ft.Text("IDENTIFICATION REQUIRED", size=18, weight="bold"),
+            name_input,
+            ft.ElevatedButton("ACCESS SYSTEM", on_click=enter_dashboard, bgcolor=ft.Colors.CYAN_800, color="white", width=300)
+        )
+        page.update()
+
+    # ==========================================
+    # --- DASHBOARD SYSTEM ---
+    # ==========================================
     async def build_dashboard():
         page.clean()
+        state["running"] = True 
         page.vertical_alignment = ft.MainAxisAlignment.START 
         page.horizontal_alignment = ft.CrossAxisAlignment.START
 
+        # --- DASHBOARD VARIABLES ---
         clock_val = ft.Text(value="00:00:00 PM", size=26, weight=ft.FontWeight.BOLD)
         cpu_val = ft.Text(value="40.0°C", size=28, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_700)
         weather_display = ft.Text(value="SYNCING WEATHER...", size=16, weight=ft.FontWeight.W_500)
@@ -146,7 +188,12 @@ async def main(page: ft.Page):
             options=[ft.dropdown.Option("Male Engine"), ft.dropdown.Option("Female Engine")]
         )
 
-       # --- UPDATE SYSTEM LOGIC ---
+        # --- DASHBOARD LOGIC ---
+        async def logout_user(e):
+            state["running"] = False 
+            clear_user_local() 
+            await show_login() 
+
         async def check_for_updates(e):
             import webbrowser
             import json
@@ -200,7 +247,6 @@ async def main(page: ft.Page):
 
             page.update()
 
-        # --- WEATHER & DASHBOARD LOGIC ---
         async def update_weather():
             try:
                 context = ssl._create_unverified_context()
@@ -254,9 +300,20 @@ async def main(page: ft.Page):
                 status_msg.value = f"CLEANUP: {files_deleted} REMOVED, {errors} IN USE"
             page.update()
 
-        # UI Layout
+        # ==========================================
+        # --- DASHBOARD UI ---
+        # ==========================================
         page.add(
-            ft.Text(f"LOGGED IN AS: {state['user_name'].upper()}", size=11, weight="bold", color=ft.Colors.CYAN_800),
+            ft.Row(
+                [
+                    ft.Text(f"LOGGED IN AS: {state['user_name'].upper()}", size=11, weight="bold", color=ft.Colors.CYAN_800),
+                    ft.Row([
+                        ft.IconButton(ft.Icons.LOGOUT_ROUNDED, icon_color=ft.Colors.RED_700, tooltip="Logout", icon_size=16, on_click=logout_user),
+                        ft.Icon(ft.Icons.INFO_OUTLINE, size=16, color=ft.Colors.CYAN_800, tooltip="Version 2.0")
+                    ])
+                ],
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+            ),
             voice_dd,
             ft.Divider(height=20, color=ft.Colors.TRANSPARENT),
             ft.Card(content=ft.Container(content=ft.ListTile(leading=ft.Icon(ft.Icons.ACCESS_TIME_FILLED), title=ft.Text("TIME"), subtitle=clock_val), padding=10, bgcolor=ft.Colors.WHITE, border_radius=15)),
@@ -281,6 +338,17 @@ async def main(page: ft.Page):
             state["temp_val"], cpu_val.value = str(temp), f"{temp}°C"
             page.update()
             await asyncio.sleep(1)
+
+    # ==========================================
+    # --- BOOT ROUTING ---
+    # ==========================================
+    saved_user = get_user_local() 
+    
+    if saved_user:
+        state["user_name"] = saved_user
+        await build_dashboard()
+    else:
+        await show_login()
 
 if __name__ == "__main__":
     ft.app(target=main)
